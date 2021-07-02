@@ -10,7 +10,6 @@
 * tqdm
 * tensorboard
 * Prefetch version of DataLoader: https://github.com/IgorSusmelj/pytorch-styleguide/issues/5
-* apex: https://github.com/NVIDIA/apex (to speed up training)
 * nlgeval*: https://github.com/Maluuba/nlg-eval
 
 

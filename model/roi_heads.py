@@ -179,7 +179,7 @@ class DenseCapRoIHeads(nn.Module):
                      targets]  # generate labels LongTensor(1)
 
         # append ground-truth bboxes to propos
-        # List[2*N,4],一个list是一张图片
+        # List[2*N,4],one list is one picture
         proposals = [
             torch.cat((proposal, gt_box))
             for proposal, gt_box in zip(proposals, gt_boxes)
@@ -307,8 +307,8 @@ class DenseCapRoIHeads(nn.Module):
         box_features = self.box_head(box_features)
         logits, box_regression = self.box_predictor(box_features)
         if self.training:
-            # labels 到这里应该是有0和（1，class-1），0代表背景，其余代表类别，需要剔除背景，然后进行描述(List[Tensor])
-            # 也需要滤除对应的caption和caption_length
+            # labels here is 0 and （1，class-1），0is backgrounds，other is class，first need to remove the background，and then did the caption(List[Tensor])
+
             keep_ids = [label>0 for label in labels]
             boxes_per_image = [boxes_in_image.shape[0] for boxes_in_image in proposals]
             box_features = box_features.split(boxes_per_image, 0)

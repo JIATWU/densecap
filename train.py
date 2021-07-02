@@ -10,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.data_loader import DenseCapDataset, DataLoaderPFG
 from model.densecap import densecap_resnet50_fpn
 
-#from apex import amp
+# from apex import amp
 
 from evaluate import quality_check, quantity_check
 
@@ -32,7 +32,6 @@ MAX_VAL_IMAGE = -1
 
 
 def set_args():
-
     args = dict()
 
     args['backbone_pretrained'] = True
@@ -66,11 +65,10 @@ def set_args():
 
 
 def save_model(model, optimizer, amp_, results_on_val, iter_counter, flag=None):
-
     state = {'model': model.state_dict(),
              'optimizer': optimizer.state_dict(),
              'amp': amp_.state_dict(),
-             'results_on_val':results_on_val,
+             'results_on_val': results_on_val,
              'iterations': iter_counter}
     if isinstance(flag, str):
         filename = os.path.join('model_params', '{}_{}.pth.tar'.format(MODEL_NAME, flag))
@@ -81,7 +79,6 @@ def save_model(model, optimizer, amp_, results_on_val, iter_counter, flag=None):
 
 
 def train(args):
-
     print('Model {} start training...'.format(MODEL_NAME))
 
     model = densecap_resnet50_fpn(backbone_pretrained=args['backbone_pretrained'],
@@ -100,17 +97,17 @@ def train(args):
     model.to(device)
 
     optimizer = torch.optim.Adam([{'params': (para for name, para in model.named_parameters()
-                                    if para.requires_grad and 'box_describer' not in name)},
+                                              if para.requires_grad and 'box_describer' not in name)},
                                   {'params': (para for para in model.roi_heads.box_describer.parameters()
                                               if para.requires_grad), 'lr': args['caption_lr']}],
-                                  lr=args['lr'], weight_decay=args['weight_decay'])
+                                 lr=args['lr'], weight_decay=args['weight_decay'])
 
     # apex initialization
-    opt_level = 'O1'
- #   model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
+    # opt_level = 'O1'
+    #   model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
     # ref: https://github.com/NVIDIA/apex/issues/441
-   # model.roi_heads.box_roi_pool.forward = \
-  #      amp.half_function(model.roi_heads.box_roi_pool.forward)
+    # model.roi_heads.box_roi_pool.forward = \
+    #      amp.half_function(model.roi_heads.box_roi_pool.forward)
 
     train_set = DenseCapDataset(IMG_DIR_ROOT, VG_DATA_PATH, LOOK_UP_TABLES_PATH, dataset_type='train')
     val_set = DenseCapDataset(IMG_DIR_ROOT, VG_DATA_PATH, LOOK_UP_TABLES_PATH, dataset_type='val')
@@ -136,15 +133,14 @@ def train(args):
         for batch, (img, targets, info) in enumerate(train_loader):
 
             img = [img_tensor.to(device) for img_tensor in img]
-            targets = [{k:v.to(device) for k, v in target.items()} for target in targets]
+            targets = [{k: v.to(device) for k, v in target.items()} for target in targets]
 
             model.train()
             losses = model(img, targets)
 
-            detect_loss =  losses['loss_objectness'] + losses['loss_rpn_box_reg'] + \
-                           losses['loss_classifier'] + losses['loss_box_reg']
+            detect_loss = losses['loss_objectness'] + losses['loss_rpn_box_reg'] + \
+                          losses['loss_classifier'] + losses['loss_box_reg']
             caption_loss = losses['loss_caption']
-
 
             total_loss = args['detect_loss_weight'] * detect_loss + args['caption_loss_weight'] * caption_loss
 
@@ -159,8 +155,7 @@ def train(args):
                 writer.add_scalar('details/loss_classifier', losses['loss_classifier'].item(), iter_counter)
                 writer.add_scalar('details/loss_box_reg', losses['loss_box_reg'].item(), iter_counter)
 
-
-            if iter_counter % (len(train_set)/(args['batch_size']*16)) == 0:
+            if iter_counter % (len(train_set) / (args['batch_size'] * 16)) == 0:
                 print("[{}][{}]\ntotal_loss {:.3f}".format(epoch, batch, total_loss.item()))
                 for k, v in losses.items():
                     print(" <{}> {:.3f}".format(k, v))
@@ -168,16 +163,16 @@ def train(args):
             optimizer.zero_grad()
             # total_loss.backward()
             # apex backward
-    #        with amp.scale_loss(total_loss, optimizer) as scaled_loss:
-     #           scaled_loss.backward()
-      #      optimizer.step()
+            #        with amp.scale_loss(total_loss, optimizer) as scaled_loss:
+            #           scaled_loss.backward()
+            #      optimizer.step()
 
             if iter_counter > 0 and iter_counter % 20000 == 0:
                 try:
                     results = quantity_check(model, val_set, idx_to_token, device, max_iter=-1, verbose=True)
                     if results['map'] > best_map:
                         best_map = results['map']
-                        #save_model(model, optimizer, amp, results, iter_counter)
+                        # save_model(model, optimizer, amp, results, iter_counter)
                         save_model(model, optimizer, results, iter_counter)
 
                     if USE_TB:
@@ -190,7 +185,7 @@ def train(args):
 
             iter_counter += 1
 
-    #save_model(model, optimizer, amp, results, iter_counter, flag='end')
+    # save_model(model, optimizer, amp, results, iter_counter, flag='end')
     save_model(model, optimizer, results, iter_counter, flag='end')
 
     if USE_TB:
@@ -198,6 +193,5 @@ def train(args):
 
 
 if __name__ == '__main__':
-
     args = set_args()
     train(args)
